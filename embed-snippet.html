@@ -1,0 +1,25 @@
+<!--
+  Paste into a GoHighLevel "Custom JS/HTML" element (or any HTML page).
+  Replace YOUR-APP.vercel.app with your deployed domain.
+  Optional query params on the iframe src:
+    ?bg=transparent     blend with your page background
+    ?theme=light|dark   force a colour theme
+    ?url=example.com    prefill the address (&auto=1 to capture on load)
+-->
+<iframe
+  id="screenshot-tool"
+  src="https://YOUR-APP.vercel.app/?bg=transparent&theme=light"
+  title="Webpage screenshot tool"
+  style="width:100%; height:640px; border:0; display:block;"
+  loading="lazy"
+  allow="clipboard-write"
+></iframe>
+<script>
+  // Grows/shrinks the iframe to fit its content (no inner scrollbars).
+  window.addEventListener("message", function (e) {
+    if (!e.origin.endsWith(".vercel.app") && e.origin !== "https://YOUR-CUSTOM-DOMAIN.com") return;
+    if (e.data && e.data.type === "screenshot-tool:height") {
+      document.getElementById("screenshot-tool").style.height = Math.max(420, e.data.height) + "px";
+    }
+  });
+</script>

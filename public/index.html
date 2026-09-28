@@ -1,0 +1,355 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Webpage Screenshot</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --canvas: #F2F4F6;
+    --surface: #FFFFFF;
+    --ink: #1A2230;
+    --muted: #5E6878;
+    --line: #D5DAE1;
+    --accent: #2450D8;
+    --accent-ink: #FFFFFF;
+    --accent-soft: #E6ECFC;
+    --error: #B3261E;
+    --error-soft: #FCEBEA;
+    --radius-lg: 14px;
+    --radius-sm: 8px;
+    --font: "Figtree", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --canvas: #12161D; --surface: #1B212B; --ink: #E8ECF2; --muted: #9AA4B2;
+      --line: #313A47; --accent: #6F8FF5; --accent-ink: #0E1320; --accent-soft: #232D45;
+      --error: #FF8A80; --error-soft: #3A2222;
+    }
+  }
+  :root[data-theme="dark"] {
+    --canvas: #12161D; --surface: #1B212B; --ink: #E8ECF2; --muted: #9AA4B2;
+    --line: #313A47; --accent: #6F8FF5; --accent-ink: #0E1320; --accent-soft: #232D45;
+    --error: #FF8A80; --error-soft: #3A2222;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--canvas);
+    color: var(--ink);
+    font-family: var(--font);
+    font-size: 16px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  body.transparent { background: transparent; }
+
+  .tool { max-width: 760px; margin: 0 auto; padding: 24px 16px; }
+
+  h1 { font-size: 1.625rem; line-height: 1.2; font-weight: 700; letter-spacing: -0.01em; margin: 0 0 4px; }
+  .lede { margin: 0 0 20px; color: var(--muted); max-width: 60ch; }
+
+  /* Address bar */
+  .bar {
+    display: flex; gap: 8px; padding: 6px;
+    background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg);
+  }
+  .bar:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+  .bar input {
+    flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--ink);
+    font: inherit; font-size: 1rem; padding: 10px 10px;
+  }
+  .bar input::placeholder { color: var(--muted); }
+
+  button, .btn {
+    font: inherit; font-weight: 600; font-size: 0.9375rem; cursor: pointer;
+    border-radius: var(--radius-sm); padding: 10px 16px; border: 1px solid transparent;
+    display: inline-flex; align-items: center; gap: 8px; text-decoration: none; white-space: nowrap;
+  }
+  button:focus-visible, .btn:focus-visible, select:focus-visible, .seg input:focus-visible + span, .check input:focus-visible {
+    outline: 2px solid var(--accent); outline-offset: 2px;
+  }
+  .primary { background: var(--accent); color: var(--accent-ink); }
+  .primary:hover { filter: brightness(1.08); }
+  .primary:disabled { opacity: 0.6; cursor: progress; }
+  .ghost { background: var(--surface); color: var(--ink); border-color: var(--line); }
+  .ghost:hover { border-color: var(--muted); }
+
+  /* Options */
+  .options { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; margin: 14px 2px 18px; font-size: 0.9375rem; }
+  .seg { display: inline-flex; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 3px; }
+  .seg label { position: relative; }
+  .seg input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+  .seg span { display: block; padding: 5px 12px; border-radius: 6px; color: var(--muted); font-weight: 500; }
+  .seg input:checked + span { background: var(--accent-soft); color: var(--ink); font-weight: 600; }
+  .check { display: inline-flex; align-items: center; gap: 8px; color: var(--ink); cursor: pointer; }
+  .check input { width: 16px; height: 16px; accent-color: var(--accent); margin: 0; }
+  select {
+    font: inherit; font-size: 0.9375rem; color: var(--ink); background: var(--surface);
+    border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 6px 8px;
+  }
+  .opt-label { color: var(--muted); margin-right: 6px; }
+
+  /* Viewfinder */
+  .viewfinder {
+    position: relative; min-height: 280px; border-radius: var(--radius-lg);
+    background: var(--surface); border: 1px solid var(--line);
+    display: grid; place-items: center; overflow: hidden; padding: 22px;
+  }
+  .corner { position: absolute; width: 22px; height: 22px; border-color: var(--muted); border-style: solid; border-width: 0; opacity: .7; transition: border-color .2s, opacity .2s; }
+  .corner.tl { top: 10px; left: 10px; border-top-width: 2px; border-left-width: 2px; border-top-left-radius: 4px; }
+  .corner.tr { top: 10px; right: 10px; border-top-width: 2px; border-right-width: 2px; border-top-right-radius: 4px; }
+  .corner.bl { bottom: 10px; left: 10px; border-bottom-width: 2px; border-left-width: 2px; border-bottom-left-radius: 4px; }
+  .corner.br { bottom: 10px; right: 10px; border-bottom-width: 2px; border-right-width: 2px; border-bottom-right-radius: 4px; }
+  .viewfinder.busy .corner { border-color: var(--accent); opacity: 1; }
+
+  .scan { position: absolute; left: 0; right: 0; height: 2px; top: 0; background: var(--accent); opacity: 0; box-shadow: 0 0 14px 2px var(--accent); }
+  .viewfinder.busy .scan { opacity: .75; animation: scan 1.8s ease-in-out infinite alternate; }
+  @keyframes scan { from { top: 8%; } to { top: 92%; } }
+  @media (prefers-reduced-motion: reduce) {
+    .viewfinder.busy .scan { animation: none; top: 50%; }
+  }
+
+  .state { text-align: center; color: var(--muted); max-width: 42ch; }
+  .state strong { display: block; color: var(--ink); font-weight: 600; margin-bottom: 2px; }
+  .timer { font-variant-numeric: tabular-nums; }
+  .state.error strong { color: var(--error); }
+
+  .shot { display: block; width: 100%; height: auto; border-radius: 6px; border: 1px solid var(--line); }
+  .shot-wrap { width: 100%; max-height: 70vh; overflow: auto; border-radius: 6px; }
+
+  .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; align-items: center; }
+  .meta { color: var(--muted); font-size: 0.875rem; margin-left: auto; }
+  .note { margin: 10px 2px 0; font-size: 0.875rem; color: var(--muted); }
+  .hidden { display: none !important; }
+
+  @media (max-width: 520px) {
+    h1 { font-size: 1.375rem; }
+    .bar { flex-direction: column; }
+    .bar button { justify-content: center; }
+    .meta { margin-left: 0; width: 100%; }
+  }
+</style>
+</head>
+<body>
+<main class="tool">
+  <h1>Capture a webpage</h1>
+  <p class="lede">Paste any public web address to get a clean screenshot you can preview and download.</p>
+
+  <form id="form" class="bar" novalidate>
+    <label for="url" class="hidden">Web address</label>
+    <input id="url" name="url" type="url" inputmode="url" autocomplete="url" spellcheck="false"
+           placeholder="https://example.com" required>
+    <button id="go" class="primary" type="submit">Take screenshot</button>
+  </form>
+
+  <div class="options" role="group" aria-label="Screenshot options">
+    <div class="seg" role="radiogroup" aria-label="Screen size">
+      <label><input type="radio" name="device" value="1440x900"><span>Desktop</span></label>
+      <label><input type="radio" name="device" value="1280x800" checked><span>Laptop</span></label>
+      <label><input type="radio" name="device" value="768x1024"><span>Tablet</span></label>
+      <label><input type="radio" name="device" value="390x844"><span>Phone</span></label>
+    </div>
+    <label class="check"><input id="fullPage" type="checkbox"> Whole page</label>
+    <label><span class="opt-label">Format</span>
+      <select id="format">
+        <option value="png">PNG</option>
+        <option value="jpeg">JPG</option>
+        <option value="webp">WebP</option>
+      </select>
+    </label>
+  </div>
+
+  <section id="viewfinder" class="viewfinder" aria-live="polite">
+    <span class="corner tl"></span><span class="corner tr"></span>
+    <span class="corner bl"></span><span class="corner br"></span>
+    <span class="scan" aria-hidden="true"></span>
+
+    <div id="empty" class="state">
+      <strong>No screenshot yet</strong>
+      Enter an address above and choose a screen size.
+    </div>
+    <div id="loading" class="state hidden">
+      <strong>Capturing <span id="host"></span>… <span class="timer" id="timer">0s</span></strong>
+      The first capture after a quiet period can take 10–15 seconds while the browser starts.
+    </div>
+    <div id="error" class="state error hidden">
+      <strong>Screenshot failed</strong>
+      <span id="errorText"></span>
+    </div>
+    <div id="result" class="shot-wrap hidden">
+      <img id="shot" class="shot" alt="">
+    </div>
+  </section>
+
+  <div id="actions" class="actions hidden">
+    <button id="download" class="primary" type="button">Download</button>
+    <a id="open" class="btn ghost" target="_blank" rel="noopener">Open full size</a>
+    <button id="copy" class="ghost" type="button">Copy image link</button>
+    <span id="meta" class="meta"></span>
+  </div>
+  <p id="truncNote" class="note hidden">This page is very long, so the screenshot stops at 10,000 px.</p>
+</main>
+
+<script>
+(() => {
+  const params = new URLSearchParams(location.search);
+  // ?api=https://your-app.vercel.app lets you host this UI elsewhere (e.g. OneCompiler).
+  const API_BASE = (params.get("api") || "").replace(/\/$/, "");
+  const API = `${API_BASE}/api/screenshot`;
+
+  if (params.get("bg") === "transparent") document.body.classList.add("transparent");
+  if (["light", "dark"].includes(params.get("theme"))) document.documentElement.dataset.theme = params.get("theme");
+
+  const $ = (id) => document.getElementById(id);
+  const els = {
+    form: $("form"), url: $("url"), go: $("go"), full: $("fullPage"), format: $("format"),
+    vf: $("viewfinder"), empty: $("empty"), loading: $("loading"), error: $("error"),
+    errorText: $("errorText"), result: $("result"), shot: $("shot"), host: $("host"), timer: $("timer"),
+    actions: $("actions"), download: $("download"), open: $("open"), copy: $("copy"),
+    meta: $("meta"), trunc: $("truncNote"),
+  };
+
+  let current = null;    // { blobUrl, filename, apiUrl }
+  let tick = null;
+  let controller = null;
+
+  function show(state) {
+    ["empty", "loading", "error", "result"].forEach((s) => els[s].classList.toggle("hidden", s !== state));
+    els.actions.classList.toggle("hidden", state !== "result");
+    if (state !== "result") els.trunc.classList.add("hidden");
+    els.vf.classList.toggle("busy", state === "loading");
+    postHeight();
+  }
+
+  function normalise(raw) {
+    let v = raw.trim();
+    if (!v) return null;
+    if (!/^[a-z][a-z0-9+.-]*:\/\//i.test(v)) v = "https://" + v;
+    try {
+      const u = new URL(v);
+      return /^https?:$/.test(u.protocol) && u.hostname.includes(".") ? u : null;
+    } catch { return null; }
+  }
+
+  function buildApiUrl(target, extra = {}) {
+    const [width, height] = document.querySelector('input[name="device"]:checked').value.split("x");
+    const q = new URLSearchParams({
+      url: target.href, width, height, format: els.format.value,
+      fullPage: String(els.full.checked), ...extra,
+    });
+    const base = API_BASE || location.origin;
+    return new URL(`${API}?${q}`, base).href;
+  }
+
+  function fail(msg) {
+    els.errorText.textContent = msg;
+    show("error");
+  }
+
+  async function capture(e) {
+    e?.preventDefault();
+    const target = normalise(els.url.value);
+    if (!target) return fail("Enter a full web address, like https://example.com.");
+    els.url.value = target.href;
+
+    controller?.abort();
+    controller = new AbortController();
+    if (current?.blobUrl) URL.revokeObjectURL(current.blobUrl);
+    current = null;
+
+    els.host.textContent = target.hostname;
+    const started = Date.now();
+    els.timer.textContent = "0s";
+    clearInterval(tick);
+    tick = setInterval(() => { els.timer.textContent = Math.round((Date.now() - started) / 1000) + "s"; }, 500);
+    els.go.disabled = true;
+    show("loading");
+
+    const apiUrl = buildApiUrl(target);
+    try {
+      const res = await fetch(apiUrl, { signal: controller.signal });
+      if (!res.ok) {
+        let msg = `The service returned an error (${res.status}).`;
+        try { msg = (await res.json()).error || msg; } catch {}
+        if (res.status === 504) msg = "The site took too long to load. Try again, or pick a smaller screen size.";
+        throw new Error(msg);
+      }
+      const blob = await res.blob();
+      const format = res.headers.get("X-Screenshot-Format") || els.format.value;
+      const ext = format === "jpeg" ? "jpg" : format;
+      const filename = `screenshot-${target.hostname}-${new Date().toISOString().slice(0, 10)}.${ext}`;
+      const blobUrl = URL.createObjectURL(blob);
+      current = { blobUrl, filename, apiUrl };
+
+      els.shot.alt = `Screenshot of ${target.hostname}`;
+      els.shot.onload = postHeight;
+      els.shot.src = blobUrl;
+      els.open.href = apiUrl;
+      els.meta.textContent = `${ext.toUpperCase()}, ${(blob.size / 1024).toFixed(0)} KB, captured in ${((Date.now() - started) / 1000).toFixed(1)}s`;
+      show("result");
+      els.trunc.classList.toggle("hidden", res.headers.get("X-Screenshot-Truncated") !== "true");
+    } catch (err) {
+      if (err.name === "AbortError") return;
+      fail(err.message === "Failed to fetch"
+        ? "Couldn't reach the screenshot service. Check your connection and try again."
+        : err.message);
+    } finally {
+      clearInterval(tick);
+      els.go.disabled = false;
+    }
+  }
+
+  function download() {
+    if (!current) return;
+    // Blob download works in normal iframes. If the host page sandboxes the iframe
+    // without allow-downloads, fall back to the server's attachment response in a new tab.
+    try {
+      const a = document.createElement("a");
+      a.href = current.blobUrl;
+      a.download = current.filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    } catch {
+      window.open(current.apiUrl + "&download=true", "_blank", "noopener");
+    }
+  }
+
+  async function copyLink() {
+    if (!current) return;
+    try {
+      await navigator.clipboard.writeText(current.apiUrl);
+      els.copy.textContent = "Link copied";
+    } catch {
+      window.prompt("Copy this image link:", current.apiUrl);
+    }
+    setTimeout(() => (els.copy.textContent = "Copy image link"), 2000);
+  }
+
+  // Tell the parent page (GHL, OneCompiler…) how tall we are, so it can size the iframe.
+  function postHeight() {
+    if (window.parent === window) return;
+    requestAnimationFrame(() => {
+      window.parent.postMessage({ type: "screenshot-tool:height", height: document.documentElement.scrollHeight }, "*");
+    });
+  }
+  new ResizeObserver(postHeight).observe(document.body);
+
+  els.form.addEventListener("submit", capture);
+  els.download.addEventListener("click", download);
+  els.copy.addEventListener("click", copyLink);
+
+  // ?url=example.com prefills; add &auto=1 to capture immediately.
+  if (params.get("url")) {
+    els.url.value = params.get("url");
+    if (params.get("auto") === "1") capture();
+  }
+})();
+</script>
+</body>
+</html>

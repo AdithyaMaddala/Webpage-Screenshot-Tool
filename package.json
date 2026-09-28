@@ -1,0 +1,19 @@
+{
+  "name": "url-screenshot-api",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Lightweight webpage screenshot API + embeddable UI for Vercel (puppeteer-core + @sparticuz/chromium)",
+  "type": "module",
+  "engines": {
+    "node": "22.x"
+  },
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "dev:vercel": "npx vercel dev",
+    "deploy": "npx vercel --prod"
+  },
+  "dependencies": {
+    "@sparticuz/chromium": "153.0.0",
+    "puppeteer-core": "25.11.0"
+  }
+}
