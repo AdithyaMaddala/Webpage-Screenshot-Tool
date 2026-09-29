@@ -1,5 +1,6 @@
 import { getBrowser } from "../lib/browser.js";
 import { validateTargetUrl, isHostAllowed } from "../lib/url-guard.js";
+import { prepareFullPage } from "../lib/fullpage.js";
 
 /**
  * GET /api/screenshot?url=https://example.com
@@ -60,21 +61,14 @@ function sendJson(res, status, body) {
   res.end(JSON.stringify(body));
 }
 
-async function capture(page, opts, format, quality) {
+async function capture(page, opts, format, quality, fullHeight) {
   const shot = { type: format, captureBeyondViewport: true };
   if (format !== "png") shot.quality = quality;
 
   let truncated = false;
-  if (opts.fullPage) {
-    const pageHeight = await page.evaluate(() =>
-      Math.max(document.documentElement.scrollHeight, document.body?.scrollHeight ?? 0)
-    );
-    if (pageHeight > MAX_FULLPAGE_HEIGHT) {
-      shot.clip = { x: 0, y: 0, width: opts.width, height: MAX_FULLPAGE_HEIGHT };
-      truncated = true;
-    } else {
-      shot.fullPage = true;
-    }
+  if (opts.fullPage && fullHeight > opts.height) {
+    truncated = fullHeight > MAX_FULLPAGE_HEIGHT;
+    shot.clip = { x: 0, y: 0, width: opts.width, height: Math.min(fullHeight, MAX_FULLPAGE_HEIGHT) };
   }
   const buffer = Buffer.from(await page.screenshot(shot));
   return { buffer, truncated };
@@ -134,16 +128,19 @@ export default async function handler(req, res) {
     }
     if (opts.delay) await new Promise((r) => setTimeout(r, opts.delay));
 
+    // Measure the real content height (handles inner scroll boxes, iframes and lazy images).
+    const fullHeight = opts.fullPage ? await prepareFullPage(page, MAX_FULLPAGE_HEIGHT) : 0;
+
     // Capture, stepping down to JPEG if the result would exceed Vercel's response limit.
     const limit = opts.response === "base64" ? MAX_BASE64_SOURCE_BYTES : MAX_BINARY_BYTES;
     let format = opts.format;
     let quality = opts.quality;
-    let { buffer, truncated } = await capture(page, opts, format, quality);
+    let { buffer, truncated } = await capture(page, opts, format, quality, fullHeight);
     for (const q of [75, 55, 35]) {
       if (buffer.length <= limit) break;
       format = "jpeg";
       quality = Math.min(quality, q);
-      ({ buffer, truncated } = await capture(page, opts, format, quality));
+      ({ buffer, truncated } = await capture(page, opts, format, quality, fullHeight));
     }
     if (buffer.length > limit) {
       throw Object.assign(
